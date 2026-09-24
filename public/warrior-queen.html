@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Warrior Queen - 2D Action Fighting Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0a0a0c;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #181528 0%, #08070d 100%);
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      max-width: 1100px;
+      max-height: 620px;
+      aspect-ratio: 16 / 9;
+      object-fit: contain;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85);
+      border-radius: 8px;
+      background: #000;
+    }
+    .screen-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 40;
+      background: rgba(10, 10, 14, 0.88);
+      backdrop-filter: blur(8px);
+    }
+    .hidden { display: none !important; }
+    .card {
+      background: #14131b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 480px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 900;
+      letter-spacing: 2px;
+      background: linear-gradient(180deg, #fef08a 0%, #f59e0b 50%, #b45309 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .subtitle {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #f59e0b;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.875rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease-in-out;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .btn-primary {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+      color: #09090b;
+      box-shadow: 0 10px 25px rgba(245, 158, 11, 0.35);
+      width: 100%;
+      padding: 14px 24px;
+      font-size: 1rem;
+    }
+    .btn-primary:active { transform: scale(0.96); }
+    .btn-secondary {
+      background: #201e2c;
+      color: #e2e8f0;
+      border: 1px solid #332f46;
+    }
+    .btn-secondary:hover { background: #2a273b; }
+    .diff-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin: 16px 0;
+    }
+    .diff-btn {
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #2e2a42;
+      background: #121018;
+      color: #94a3b8;
+      font-weight: 700;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .diff-btn.active {
+      background: #f59e0b;
+      color: #09090b;
+      border-color: #f59e0b;
+    }
+    /* HUD & Controls */
+    #hud {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      padding: 12px;
+      pointer-events: none;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hud-btn {
+      pointer-events: auto;
+      background: rgba(18, 16, 24, 0.85);
+      border: 1px solid #3b3554;
+      color: #f59e0b;
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .health-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .bar-wrapper {
+      background: rgba(18, 16, 24, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 6px 10px;
+      border-radius: 10px;
+    }
+    .bar-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .health-track {
+      width: 100%;
+      height: 10px;
+      background: #201e2b;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .health-fill-player {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #34d399);
+      transition: width 0.15s;
+    }
+    .health-fill-enemy {
+      height: 100%;
+      background: linear-gradient(90deg, #ef4444, #dc2626);
+      transition: width 0.15s;
+      margin-left: auto;
+    }
+    #combat-controls {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 12px;
+      pointer-events: none;
+      z-index: 30;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .ctrl-group {
+      pointer-events: auto;
+      display: flex;
+      gap: 8px;
+    }
+    .action-btn {
+      width: 68px;
+      height: 68px;
+      border-radius: 16px;
+      border: 1px solid #3b3554;
+      background: rgba(22, 19, 32, 0.9);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .action-btn:active { transform: scale(0.92); }
+    .action-btn.disabled { opacity: 0.5; pointer-events: none; }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas" width="1000" height="560"></canvas>
+
+    <!-- IN-GAME HUD -->
+    <div id="hud" class="hidden">
+      <div class="hud-header">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="btn-audio" class="hud-btn">🔊</button>
+          <span id="hud-diff-tag" style="font-size:10px; font-weight:700; padding:4px 8px; border-radius:6px; background:#201e2b; color:#f59e0b; border:1px solid #3b3554;">NORMAL</span>
+        </div>
+        <div id="hud-stage-title" style="font-size:12px; font-weight:800; color:#fef08a; letter-spacing:1px;">LEVEL 1</div>
+        <button id="btn-pause" class="hud-btn">⏸</button>
+      </div>
+      <div class="health-grid">
+        <div class="bar-wrapper" style="border-color: rgba(245, 158, 11, 0.4);">
+          <div class="bar-label">
+            <span id="player-hud-name" style="color:#f59e0b;">WARRIOR QUEEN</span>
+            <span id="player-hp-num">100 / 100</span>
+          </div>
+          <div class="health-track">
+            <div id="player-hp-fill" class="health-fill-player" style="width: 100%;"></div>
+          </div>
+        </div>
+        <div class="bar-wrapper" style="border-color: rgba(239, 68, 68, 0.4); text-align:right;">
+          <div class="bar-label" style="flex-direction: row-reverse;">
+            <span id="enemy-hud-name" style="color:#ef4444;">WARLORD</span>
+            <span id="enemy-hp-num">100 / 100</span>
+          </div>
+          <div class="health-track">
+            <div id="enemy-hp-fill" class="health-fill-enemy" style="width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOUCH COMBAT CONTROLS -->
+    <div id="combat-controls" class="hidden">
+      <div class="ctrl-group">
+        <button id="btn-left" class="action-btn" style="width:54px; height:54px;">◀</button>
+        <button id="btn-right" class="action-btn" style="width:54px; height:54px;">▶</button>
+        <button id="btn-dash" class="action-btn" style="width:54px; height:54px; color:#38bdf8; border-color:#0284c7;">
+          <span>DASH</span>
+          <span id="cd-dash" style="font-size:8px; opacity:0.8;">[SPACE]</span>
+        </button>
+      </div>
+      <div class="ctrl-group">
+        <button id="btn-slash" class="action-btn" style="color:#f59e0b; border-color:#d97706;">
+          <span>SLASH</span>
+          <span id="cd-slash" style="font-size:8px; opacity:0.8;">[1/J]</span>
+        </button>
+        <button id="btn-power" class="action-btn" style="color:#f97316; border-color:#ea580c;">
+          <span>POWER</span>
+          <span id="cd-power" style="font-size:8px; opacity:0.8;">[2/K]</span>
+        </button>
+        <button id="btn-special" class="action-btn" style="color:#f43f5e; border-color:#e11d48; width:74px;">
+          <span>CYCLONE</span>
+          <span id="cd-special" style="font-size:8px; opacity:0.8;">[3/L]</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- MAIN MENU OVERLAY -->
+    <div id="screen-menu" class="screen-overlay">
+      <div class="card">
+        <div class="subtitle">Legend of the Blade</div>
+        <h1>Warrior Queen</h1>
+        <p style="font-size:12px; color:#94a3b8; margin-bottom:16px;">
+          Conquer 8 intense battlegrounds with your curved Talwar sword. Master timing and unlock mythic royal armors.
+        </p>
+
+        <!-- Difficulty Selector -->
+        <div style="font-size:11px; font-weight:700; text-align:left; color:#cbd5e1; margin-bottom:4px;">
+          SELECT DIFFICULTY:
+        </div>
+        <div class="diff-container">
+          <button class="diff-btn" data-diff="EASY">EASY</button>
+          <button class="diff-btn active" data-diff="NORMAL">NORMAL</button>
+          <button class="diff-btn" data-diff="HARD">HARD</button>
+        </div>
+        <p id="diff-desc" style="font-size:11px; color:#f59e0b; margin-bottom:16px;">
+          Balanced combat experience for responsive mobile & PC play.
+        </p>
+
+        <button id="btn-start" class="btn btn-primary" style="margin-bottom:10px;">ENTER THE ARENA</button>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <button id="btn-goto-levels" class="btn btn-secondary" style="font-size:11px;">LEVEL SELECT</button>
+          <button id="btn-goto-wardrobe" class="btn btn-secondary" style="font-size:11px;">WARDROBE</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEVEL SELECT OVERLAY -->
+    <div id="screen-levels" class="screen-overlay hidden">
+      <div class="card" style="max-width:640px;">
+        <h2 style="font-size:1.5rem; color:#fef08a; margin-bottom:8px;">CAMPAIGN LEVELS</h2>
+        <p style="font-size:12px; color:#94a3b8; margin-bottom:16px;">Defeat each warlord to unlock the next chapter.</p>
+        <div id="levels-grid" style="display:grid; grid-template-columns:repeat(4, 1fr); gap:8px; margin-bottom:16px;"></div>
+        <button id="btn-levels-back" class="btn btn-secondary" style="width:100%;">BACK TO MAIN MENU</button>
+      </div>
+    </div>
+
+    <!-- WARDROBE OVERLAY -->
+    <div id="screen-wardrobe" class="screen-overlay hidden">
+      <div class="card" style="max-width:600px;">
+        <h2 style="font-size:1.5rem; color:#fef08a; margin-bottom:4px;">ROYAL WARDROBE</h2>
+        <p style="font-size:12px; color:#94a3b8; margin-bottom:16px;">Equip unlocked armor sets to boost your combat stats.</p>
+        <div id="skins-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;"></div>
+        <button id="btn-wardrobe-back" class="btn btn-secondary" style="width:100%;">BACK TO MAIN MENU</button>
+      </div>
+    </div>
+
+    <!-- VICTORY / DEFEAT MODAL -->
+    <div id="screen-result" class="screen-overlay hidden">
+      <div class="card">
+        <h2 id="result-title" style="font-size:2rem; margin-bottom:8px;">VICTORY</h2>
+        <p id="result-desc" style="font-size:12px; color:#94a3b8; margin-bottom:16px;"></p>
+        <div id="result-unlock-box" style="display:none; padding:10px; background:rgba(245,158,11,0.15); border:1px solid #f59e0b; border-radius:8px; margin-bottom:16px; font-size:11px; text-align:left;"></div>
+        <div style="display:flex; gap:8px;">
+          <button id="btn-result-action" class="btn btn-primary" style="flex:1;">CONTINUE</button>
+          <button id="btn-result-menu" class="btn btn-secondary">MENU</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* =========================================================
+       COMPLETE SELF-CONTAINED ZERO-DEPENDENCY ENGINE
+       ========================================================= */
+    const SKINS = [
+      { id: 'novice_rajput', name: 'Novice Rajput', unlockLvl: 1, atk: 1.0, hp: 0, spd: 1.0, perk: 'Standard combat attributes', primary: '#ca8a04', secondary: '#991b1b', cape: '#b91c1c', accent: '#eab308' },
+      { id: 'royal_guard', name: 'Royal Guard Armor', unlockLvl: 2, atk: 1.05, hp: 20, spd: 1.0, perk: '+15% Max HP, +5% ATK', primary: '#94a3b8', secondary: '#1e3a8a', cape: '#2563eb', accent: '#38bdf8' },
+      { id: 'golden_empress', name: 'Golden Empress', unlockLvl: 5, atk: 1.2, hp: 10, spd: 1.1, perk: '+20% ATK, +10% Speed', primary: '#facc15', secondary: '#78350f', cape: '#ea580c', accent: '#fef08a' },
+      { id: 'mythic_devi', name: 'Mythic Devi Avatar', unlockLvl: 8, atk: 1.3, hp: 30, spd: 1.15, perk: '+30% ATK, +25% HP, +15% Speed', primary: '#1e1b4b', secondary: '#4338ca', cape: '#6366f1', accent: '#a855f7' }
+    ];
+
+    const LEVELS = [
+      { lvl: 1, name: 'Training Grounds', enemy: 'Outlaw Bandit', hp: 100, dmg: 12, spd: 100, interval: 2.8 },
+      { lvl: 2, name: 'Citadel Gates', enemy: 'Rebel Raider', hp: 130, dmg: 15, spd: 120, interval: 2.5 },
+      { lvl: 3, name: 'Dusk Skirmish', enemy: 'Vanguard Spearman', hp: 170, dmg: 18, spd: 130, interval: 2.2 },
+      { lvl: 4, name: 'Captain Duel', enemy: 'Captain Devraj', hp: 220, dmg: 22, spd: 140, interval: 2.0 },
+      { lvl: 5, name: 'Royal Hall Breach', enemy: 'Champion Jodha', hp: 280, dmg: 25, spd: 150, interval: 1.8 },
+      { lvl: 6, name: 'Shadow Infiltration', enemy: 'Nightshade Blade', hp: 330, dmg: 30, spd: 170, interval: 1.6 },
+      { lvl: 7, name: 'Obsidian Sanctorum', enemy: 'Assassin Lord', hp: 390, dmg: 34, spd: 180, interval: 1.4 },
+      { lvl: 8, name: 'Volcanic Throne', enemy: 'WARLORD VIKRAM', hp: 500, dmg: 40, spd: 160, interval: 1.3, isBoss: true }
+    ];
+
+    const DIFFS = {
+      EASY: { dmg: 0.7, spd: 0.8, desc: 'Enemy strikes 20% slower with 30% reduced damage.' },
+      NORMAL: { dmg: 1.0, spd: 1.0, desc: 'Balanced combat experience for responsive mobile & PC play.' },
+      HARD: { dmg: 1.4, spd: 1.25, desc: 'Ruthless enemies: 25% faster attack speed and +40% damage!' }
+    };
+
+    // State
+    let currentDiff = localStorage.getItem('wq_diff') || 'NORMAL';
+    let highestLvl = parseInt(localStorage.getItem('wq_hlvl') || '1', 10);
+    let activeSkinId = localStorage.getItem('wq_skin') || 'novice_rajput';
+    let activeLvlNum = 1;
+    let isMuted = false;
+
+    // Canvas & Entities
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = 1000, H = 560, GROUND_Y = 470;
+
+    let player = { x: 260, y: GROUND_Y - 45, hp: 100, maxHp: 100, facing: 1, anim: 'idle', timer: 0, dur: 0, activeAtk: null, hasHit: false, cd: { slash: 0, power: 0, special: 0, dash: 0 }, isDashing: false, dashT: 0, invulnT: 0 };
+    let enemy = { x: 740, y: GROUND_Y - 45, hp: 100, maxHp: 100, facing: -1, anim: 'idle', timer: 0, dur: 0, atkCd: 2.0, isAttacking: false, teleT: 0 };
+    let particles = [], damageNumbers = [];
+    let touchMove = 0, isRunning = false;
+
+    // Web Audio Synthesizer
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let actx = null;
+    function initAudio() {
+      if (!actx) actx = new AudioCtx();
+      if (actx.state === 'suspended') actx.resume();
+    }
+    function playSnd(type) {
+      if (isMuted) return;
+      initAudio();
+      const t = actx.currentTime;
+      const osc = actx.createOscillator();
+      const g = actx.createGain();
+      osc.connect(g); g.connect(actx.destination);
+
+      if (type === 'slash') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(650, t);
+        osc.frequency.exponentialRampToValueAtTime(180, t + 0.12);
+        g.gain.setValueAtTime(0.25, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+        osc.start(t); osc.stop(t + 0.12);
+      } else if (type === 'hit') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(480, t);
+        osc.frequency.exponentialRampToValueAtTime(100, t + 0.15);
+        g.gain.setValueAtTime(0.3, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.15);
+        osc.start(t); osc.stop(t + 0.15);
+      } else if (type === 'special') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(260, t);
+        osc.frequency.linearRampToValueAtTime(620, t + 0.3);
+        g.gain.setValueAtTime(0.3, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+        osc.start(t); osc.stop(t + 0.4);
+      } else if (type === 'dash') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(420, t);
+        osc.frequency.exponentialRampToValueAtTime(90, t + 0.14);
+        g.gain.setValueAtTime(0.2, t);
+        g.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+        osc.start(t); osc.stop(t + 0.14);
+      }
+    }
+
+    // UI Updates
+    function updateDiffUI() {
+      document.querySelectorAll('.diff-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.diff === currentDiff);
+      });
+      document.getElementById('diff-desc').innerText = DIFFS[currentDiff].desc;
+      document.getElementById('hud-diff-tag').innerText = currentDiff;
+    }
+
+    function renderLevelsGrid() {
+      const g = document.getElementById('levels-grid');
+      g.innerHTML = '';
+      LEVELS.forEach(l => {
+        const unl = l.lvl <= highestLvl;
+        const d = document.createElement('div');
+        d.style.padding = '8px';
+        d.style.borderRadius = '8px';
+        d.style.border = unl ? '1px solid #f59e0b' : '1px solid #201e2b';
+        d.style.background = unl ? '#1a1824' : '#0f0e15';
+        d.style.opacity = unl ? '1' : '0.5';
+        d.style.cursor = unl ? 'pointer' : 'not-allowed';
+        d.innerHTML = `<div style="font-size:10px; font-weight:700; color:#f59e0b;">LVL 0${l.lvl}</div>
+                       <div style="font-size:10px; font-weight:700; color:#fff; truncate">${l.name}</div>
+                       <div style="font-size:9px; color:#94a3b8;">${l.hp} HP</div>`;
+        if (unl) d.onclick = () => { hideScreens(); startBattle(l.lvl); };
+        g.appendChild(d);
+      });
+    }
+
+    function renderWardrobeGrid() {
+      const g = document.getElementById('skins-grid');
+      g.innerHTML = '';
+      SKINS.forEach(s => {
+        const unl = s.unlockLvl <= highestLvl;
+        const eq = s.id === activeSkinId;
+        const d = document.createElement('div');
+        d.style.padding = '12px';
+        d.style.borderRadius = '10px';
+        d.style.border = eq ? '1px solid #f59e0b' : '1px solid #252233';
+        d.style.background = eq ? '#241c10' : '#14131c';
+        d.style.opacity = unl ? '1' : '0.5';
+        d.innerHTML = `<div style="font-size:12px; font-weight:700; color:#fff;">${s.name}</div>
+                       <div style="font-size:10px; color:#34d399; margin:4px 0;">⚡ ${s.perk}</div>`;
+        const b = document.createElement('button');
+        b.className = 'btn btn-secondary';
+        b.style.width = '100%';
+        b.style.fontSize = '10px';
+        b.style.padding = '6px';
+        if (eq) { b.innerText = 'EQUIPPED'; b.disabled = true; }
+        else if (unl) {
+          b.innerText = 'EQUIP';
+          b.onclick = () => { activeSkinId = s.id; localStorage.setItem('wq_skin', s.id); renderWardrobeGrid(); };
+        } else { b.innerText = `UNLOCK LVL ${s.unlockLvl}`; b.disabled = true; }
+        d.appendChild(b);
+        g.appendChild(d);
+      });
+    }
+
+    function hideScreens() {
+      document.querySelectorAll('.screen-overlay').forEach(s => s.classList.add('hidden'));
+    }
+
+    // Battle Lifecycle
+    function startBattle(lvlNum) {
+      activeLvlNum = lvlNum;
+      const l = LEVELS.find(x => x.lvl === lvlNum) || LEVELS[0];
+      const s = SKINS.find(x => x.id === activeSkinId) || SKINS[0];
+
+      player = { x: 260, y: GROUND_Y - 45, hp: 100 + s.hp, maxHp: 100 + s.hp, facing: 1, anim: 'idle', timer: 0, dur: 0, activeAtk: null, hasHit: false, cd: { slash: 0, power: 0, special: 0, dash: 0 }, isDashing: false, dashT: 0, invulnT: 0 };
+      enemy = { x: 740, y: GROUND_Y - 45, hp: l.hp, maxHp: l.hp, facing: -1, anim: 'idle', timer: 0, dur: 0, atkCd: 2.0, isAttacking: false, teleT: 0 };
+      particles = []; damageNumbers = [];
+
+      document.getElementById('hud').classList.remove('hidden');
+      document.getElementById('combat-controls').classList.remove('hidden');
+      document.getElementById('hud-stage-title').innerText = `LEVEL 0${l.lvl}: ${l.name.toUpperCase()}`;
+      document.getElementById('enemy-hud-name').innerText = l.enemy;
+      isRunning = true;
+    }
+
+    function attack(type) {
+      if (player.hp <= 0 || player.activeAtk || player.isDashing) return;
+      if (player.cd[type] > 0) return;
+      player.activeAtk = type;
+      player.anim = type;
+      player.timer = 0;
+      player.hasHit = false;
+
+      if (type === 'slash') { player.dur = 360; player.cd.slash = 0.5; playSnd('slash'); }
+      else if (type === 'power') { player.dur = 580; player.cd.power = 3.0; playSnd('slash'); }
+      else if (type === 'special') { player.dur = 950; player.cd.special = 7.0; playSnd('special'); }
+    }
+
+    function dash() {
+      if (player.hp <= 0 || player.isDashing || player.cd.dash > 0) return;
+      player.isDashing = true;
+      player.dashT = 0.22;
+      player.cd.dash = 1.2;
+      player.invulnT = 0.25;
+      playSnd('dash');
+    }
+
+    // Input Bindings
+    document.querySelectorAll('.diff-btn').forEach(b => {
+      b.onclick = () => { currentDiff = b.dataset.diff; localStorage.setItem('wq_diff', currentDiff); updateDiffUI(); };
+    });
+    document.getElementById('btn-start').onclick = () => { hideScreens(); startBattle(Math.min(highestLvl, 8)); };
+    document.getElementById('btn-goto-levels').onclick = () => { hideScreens(); renderLevelsGrid(); document.getElementById('screen-levels').classList.remove('hidden'); };
+    document.getElementById('btn-goto-wardrobe').onclick = () => { hideScreens(); renderWardrobeGrid(); document.getElementById('screen-wardrobe').classList.remove('hidden'); };
+    document.getElementById('btn-levels-back').onclick = () => { hideScreens(); document.getElementById('screen-menu').classList.remove('hidden'); };
+    document.getElementById('btn-wardrobe-back').onclick = () => { hideScreens(); document.getElementById('screen-menu').classList.remove('hidden'); };
+    document.getElementById('btn-audio').onclick = () => { isMuted = !isMuted; document.getElementById('btn-audio').innerText = isMuted ? '🔇' : '🔊'; };
+    document.getElementById('btn-slash').onclick = () => attack('slash');
+    document.getElementById('btn-power').onclick = () => attack('power');
+    document.getElementById('btn-special').onclick = () => attack('special');
+    document.getElementById('btn-dash').onclick = () => dash();
+
+    const bl = document.getElementById('btn-left'), br = document.getElementById('btn-right');
+    bl.onpointerdown = () => touchMove = -1; bl.onpointerup = () => touchMove = 0; bl.onpointerleave = () => touchMove = 0;
+    br.onpointerdown = () => touchMove = 1; br.onpointerup = () => touchMove = 0; br.onpointerleave = () => touchMove = 0;
+
+    window.onkeydown = (e) => {
+      if (e.code === 'KeyA' || e.code === 'ArrowLeft') touchMove = -1;
+      if (e.code === 'KeyD' || e.code === 'ArrowRight') touchMove = 1;
+      if (e.code === 'Digit1' || e.code === 'KeyJ') attack('slash');
+      if (e.code === 'Digit2' || e.code === 'KeyK') attack('power');
+      if (e.code === 'Digit3' || e.code === 'KeyL') attack('special');
+      if (e.code === 'Space' || e.code === 'ShiftLeft') dash();
+    };
+    window.onkeyup = (e) => {
+      if ((e.code === 'KeyA' || e.code === 'ArrowLeft') && touchMove === -1) touchMove = 0;
+      if ((e.code === 'KeyD' || e.code === 'ArrowRight') && touchMove === 1) touchMove = 0;
+    };
+
+    // 60FPS Game Loop
+    let lastTime = performance.now();
+    function loop(t) {
+      const dt = Math.min((t - lastTime) / 1000, 0.1);
+      lastTime = t;
+
+      if (isRunning) {
+        // Cooldowns
+        for (let k in player.cd) if (player.cd[k] > 0) player.cd[k] = Math.max(0, player.cd[k] - dt);
+        if (player.invulnT > 0) player.invulnT -= dt;
+
+        // Dash logic
+        if (player.isDashing) {
+          player.dashT -= dt;
+          player.x += player.facing * 500 * dt;
+          player.x = Math.max(70, Math.min(W - 70, player.x));
+          if (player.dashT <= 0) player.isDashing = false;
+        } else if (!player.activeAtk && player.hp > 0) {
+          const s = SKINS.find(x => x.id === activeSkinId) || SKINS[0];
+          if (touchMove !== 0) {
+            player.facing = touchMove;
+            player.x += touchMove * 270 * s.spd * dt;
+            player.x = Math.max(70, Math.min(enemy.x - 60, player.x));
+          }
+        }
+
+        // Attack hit check
+        if (player.activeAtk) {
+          player.timer += dt * 1000;
+          const prog = player.timer / player.dur;
+          if (prog >= 0.4 && !player.hasHit) {
+            player.hasHit = true;
+            const dist = Math.abs(player.x - enemy.x);
+            if (dist <= 170) {
+              const s = SKINS.find(x => x.id === activeSkinId) || SKINS[0];
+              const baseDmg = player.activeAtk === 'slash' ? 15 : player.activeAtk === 'power' ? 35 : 70;
+              const dmg = Math.round(baseDmg * s.atk);
+              enemy.hp = Math.max(0, enemy.hp - dmg);
+              enemy.x = Math.min(W - 80, enemy.x + 20);
+              playSnd('hit');
+              damageNumbers.push({ x: enemy.x, y: enemy.y - 30, val: dmg, life: 40 });
+
+              if (enemy.hp <= 0) {
+                isRunning = false;
+                highestLvl = Math.max(highestLvl, activeLvlNum + 1);
+                localStorage.setItem('wq_hlvl', highestLvl);
+                setTimeout(() => showResult(true), 800);
+              }
+            }
+          }
+          if (player.timer >= player.dur) player.activeAtk = null;
+        }
+
+        // Enemy AI
+        const diff = DIFFS[currentDiff];
+        const lvl = LEVELS.find(x => x.lvl === activeLvlNum) || LEVELS[0];
+        const dist = Math.abs(player.x - enemy.x);
+
+        if (enemy.atkCd > 0) enemy.atkCd -= dt;
+        if (!enemy.isAttacking) {
+          if (dist > 140) enemy.x -= lvl.spd * diff.spd * dt;
+          else if (enemy.atkCd <= 0 && player.hp > 0) {
+            enemy.isAttacking = true;
+            enemy.timer = 0;
+            enemy.dur = 700 / diff.spd;
+            enemy.teleT = 0.35;
+          }
+        } else {
+          enemy.timer += dt * 1000;
+          if (enemy.teleT > 0) enemy.teleT -= dt;
+          if (enemy.timer / enemy.dur >= 0.5 && enemy.timer - (dt * 1000) < enemy.dur * 0.5) {
+            if (dist <= 150 && player.invulnT <= 0 && player.hp > 0) {
+              const eDmg = Math.round(lvl.dmg * diff.dmg);
+              player.hp = Math.max(0, player.hp - eDmg);
+              player.x = Math.max(70, player.x - 20);
+              playSnd('hit');
+              damageNumbers.push({ x: player.x, y: player.y - 30, val: eDmg, life: 40 });
+              if (player.hp <= 0) {
+                isRunning = false;
+                setTimeout(() => showResult(false), 800);
+              }
+            }
+          }
+          if (enemy.timer >= enemy.dur) {
+            enemy.isAttacking = false;
+            enemy.atkCd = lvl.interval / diff.spd;
+          }
+        }
+
+        // Update HUD DOM
+        document.getElementById('player-hp-num').innerText = `${Math.round(player.hp)} / ${player.maxHp}`;
+        document.getElementById('player-hp-fill').style.width = `${(player.hp / player.maxHp) * 100}%`;
+        document.getElementById('enemy-hp-num').innerText = `${Math.round(enemy.hp)} / ${enemy.maxHp}`;
+        document.getElementById('enemy-hp-fill').style.width = `${(enemy.hp / enemy.maxHp) * 100}%`;
+      }
+
+      // Procedural Rendering
+      ctx.fillStyle = '#0f0e17';
+      ctx.fillRect(0, 0, W, H);
+
+      // Floor & Backdrop Pillars
+      ctx.fillStyle = '#1a1828';
+      for (let i = 0; i < 6; i++) ctx.fillRect(i * 180 + 30, 140, 45, 340);
+      ctx.fillStyle = '#14121f';
+      ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+      // Render Characters
+      drawQueen(player);
+      drawEnemy(enemy);
+
+      // Damage Text
+      for (let i = damageNumbers.length - 1; i >= 0; i--) {
+        const d = damageNumbers[i];
+        d.life--;
+        ctx.fillStyle = '#fef08a';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText(`-${d.val}`, d.x, d.y - (40 - d.life));
+        if (d.life <= 0) damageNumbers.splice(i, 1);
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    function drawQueen(p) {
+      const s = SKINS.find(x => x.id === activeSkinId) || SKINS[0];
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.scale(p.facing, 1);
+
+      // Cape
+      ctx.fillStyle = s.cape;
+      ctx.beginPath();
+      ctx.moveTo(-10, -50);
+      ctx.lineTo(-30, -10);
+      ctx.lineTo(-10, 0);
+      ctx.fill();
+
+      // Body & Armor
+      ctx.fillStyle = s.primary;
+      ctx.fillRect(-10, -50, 20, 35);
+      ctx.fillStyle = s.secondary;
+      ctx.fillRect(-8, -15, 7, 25);
+      ctx.fillRect(1, -15, 7, 25);
+
+      // Head & Crown
+      ctx.fillStyle = '#d49767';
+      ctx.fillRect(-6, -65, 12, 14);
+      ctx.fillStyle = s.accent;
+      ctx.beginPath();
+      ctx.moveTo(-8, -65); ctx.lineTo(8, -65); ctx.lineTo(0, -74);
+      ctx.fill();
+
+      // Talwar Sword
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      if (p.activeAtk) {
+        ctx.arc(10, -35, 55, -0.8, 0.8);
+      } else {
+        ctx.moveTo(10, -30);
+        ctx.lineTo(25, -60);
+      }
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function drawEnemy(e) {
+      ctx.save();
+      ctx.translate(e.x, e.y);
+      ctx.scale(e.facing, 1);
+
+      ctx.fillStyle = '#332f46';
+      ctx.fillRect(-12, -55, 24, 40);
+      ctx.fillStyle = '#1a1824';
+      ctx.fillRect(-10, -15, 9, 25);
+      ctx.fillRect(1, -15, 9, 25);
+
+      // Head & Red Glow
+      ctx.fillStyle = '#100e17';
+      ctx.fillRect(-8, -70, 16, 15);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(-4, -64, 4, 3);
+      ctx.fillRect(1, -64, 4, 3);
+
+      if (e.teleT > 0) {
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText('!', -4, -80);
+      }
+
+      ctx.restore();
+    }
+
+    function showResult(isWin) {
+      hideScreens();
+      const r = document.getElementById('screen-result');
+      r.classList.remove('hidden');
+      document.getElementById('result-title').innerText = isWin ? 'VICTORY!' : 'DEFEATED';
+      document.getElementById('result-title').style.color = isWin ? '#f59e0b' : '#ef4444';
+      document.getElementById('result-desc').innerText = isWin ? `Level 0${activeLvlNum} Cleared on ${currentDiff} difficulty!` : 'You fell in battle. Adapt and strike back!';
+      const b = document.getElementById('btn-result-action');
+      b.innerText = isWin ? (activeLvlNum < 8 ? 'NEXT LEVEL' : 'CONQUERED!') : 'RETRY LEVEL';
+      b.onclick = () => { hideScreens(); startBattle(isWin ? Math.min(8, activeLvlNum + 1) : activeLvlNum); };
+      document.getElementById('btn-result-menu').onclick = () => { hideScreens(); document.getElementById('screen-menu').classList.remove('hidden'); };
+    }
+
+    updateDiffUI();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

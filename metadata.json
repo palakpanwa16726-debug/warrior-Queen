@@ -1,0 +1,7 @@
+{
+  "name": "Warrior Queen - 2D Action Fighting Game",
+  "description": "Play as a legendary warrior queen armed with an ornate sword in a cinematic Indian-inspired battlefield arena. Fight against a formidable enemy warrior with swift sword slashes, power strikes, and devastating special combo attacks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
